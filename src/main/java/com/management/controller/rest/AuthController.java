@@ -8,10 +8,13 @@ import java.util.stream.Collectors;
 import javax.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.config.BeanIds;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -29,6 +32,7 @@ import com.management.payload.request.LoginRequest;
 import com.management.payload.request.SignupRequest;
 import com.management.payload.response.JwtResponse;
 import com.management.payload.response.MessageResponse;
+import com.management.security.WebSecurityConfig;
 import com.management.security.jwt.JwtUtils;
 import com.management.service.UserDetailsImpl;
 
@@ -36,8 +40,13 @@ import com.management.service.UserDetailsImpl;
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
-	@Autowired
+
+	@Qualifier(BeanIds.AUTHENTICATION_MANAGER)
+	@Autowired(required=true)
 	AuthenticationManager authenticationManager;
+	
+	@Autowired(required=true)
+	WebSecurityConfig web;
 
 	@Autowired
 	UserRepository userRepository;
@@ -52,11 +61,18 @@ public class AuthController {
 	JwtUtils jwtUtils;
 	
 	@PostMapping("/signin")
-	public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
+	public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) throws AuthenticationException, Exception {
 
-		Authentication authentication = authenticationManager.authenticate(
-				new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
+		Authentication authentication = authenticationManager
+				.authenticate(
+				new UsernamePasswordAuthenticationToken(
+				loginRequest.getUsername(), loginRequest.getPassword()));
 
+//		Authentication authentication1 = web.authenticationManagerBean()
+//				.authenticate(
+//				new UsernamePasswordAuthenticationToken(
+//				loginRequest.getUsername(), loginRequest.getPassword())) ;
+		
 		SecurityContextHolder.getContext().setAuthentication(authentication);
 		String jwt = jwtUtils.generateJwtToken(authentication);
 		
